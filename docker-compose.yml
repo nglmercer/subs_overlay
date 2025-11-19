@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  subtitle-overlay:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - SUBTITLE_OVERLAY_SERVER__HOST=0.0.0.0
+      - SUBTITLE_OVERLAY_SERVER__PORT=8080
+      - SUBTITLE_OVERLAY_WINDOW__ALWAYS_ON_TOP=true
+      - SUBTITLE_OVERLAY_WINDOW__CLICK_THROUGH=true
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    # For GUI support, you may need to add:
+    # environment:
+    #   - DISPLAY=${DISPLAY}
+    # volumes:
+    #   - /tmp/.X11-unix:/tmp/.X11-unix

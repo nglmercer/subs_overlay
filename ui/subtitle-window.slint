@@ -1,0 +1,87 @@
+import { VerticalBox } from "std-widgets.slint";
+
+// Estructura de datos para subtítulos
+export struct SubtitleData {
+    id: string,
+    text: string,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    background_color: string,
+    text_color: string,
+    font_size: float,
+}
+
+export component SubtitleWindow inherits Window {
+    // Propiedades principales
+    in-out property <[SubtitleData]> subtitles: [];
+    in-out property <bool> always_on_top_prop: false;
+    in-out property <string> status_text: "Click-through: ON";
+    
+    // Configuración de ventana
+    title: "Subtitle Overlay - Press SPACE to toggle click-through";
+    background: transparent;
+    no-frame: true;
+    
+    // Hacer la ventana transparente y sin bordes
+    default-font-size: 16px;
+    
+    // Status indicator
+    Rectangle {
+        y: 0px;
+        x: 0px;
+        width: 250px;
+        height: 25px;
+        background: #333333;
+        
+        Text {
+            text: root.status_text;
+            color: #ffffff;
+            font-size: 12px;
+            x: 5px;
+            y: 5px;
+        }
+    }
+    
+    // Callback para toggle click-through
+    callback toggle-click-through();
+    
+    // Container para todos los subtítulos
+    Rectangle {
+        background: transparent;
+        
+        // Renderizar cada subtítulo como un componente individual
+        for subtitle in root.subtitles : Rectangle {
+            x: subtitle.x * 1px;
+            y: subtitle.y * 1px;
+            width: subtitle.width * 1px;
+            height: subtitle.height * 1px;
+            background: #000000;
+            border-radius: 4px;
+            opacity: 0.8;
+            
+            // Texto del subtítulo
+            Text {
+                text: subtitle.text;
+                color: #ffffff;
+                font-size: subtitle.font_size * 1px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                wrap: word-wrap;
+                
+                // Padding interno
+                x: 8px;
+                y: 4px;
+                width: parent.width - 16px;
+                height: parent.height - 8px;
+            }
+        }
+    }
+    
+    // Callbacks para eventos externos
+    callback add-subtitle(string, string, float, float, float, float, string, string, float);
+    callback remove-subtitle(string);
+    callback update-subtitle(string, string, float, float, float, float, string, string, float);
+    callback clear-all();
+}
