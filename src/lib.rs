@@ -39,8 +39,8 @@
 //! manager.show_overlay(&overlay_id)?;
 //!
 //! // Later, you can update or remove the overlay
-//! manager.update_text(overlay_id, "Updated text")?;
-//! manager.remove_overlay(overlay_id)?;
+//! manager.update_text(&overlay_id, "Updated text")?;
+//! manager.remove_overlay(&overlay_id)?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
@@ -55,8 +55,6 @@ pub mod window_manager;
 
 // Include the UI components
 slint::include_modules!();
-
-// ... (existing code)
 
 /// Type alias for overlay IDs
 pub type OverlayId = String;
@@ -130,15 +128,7 @@ impl OverlayManager {
         ui.set_font_size(config.text.font_size);
 
         // Convertir color hexadecimal a Slint Color
-        let hex_color = config.text.color.trim_start_matches('#');
-        let color_value = if hex_color.len() == 6 {
-            u32::from_str_radix(hex_color, 16).unwrap_or(0xFFFFFF)
-        } else if hex_color.len() == 8 {
-            // Si tenemos alpha, lo ignoramos por ahora
-            u32::from_str_radix(&hex_color[2..], 16).unwrap_or(0xFFFFFF)
-        } else {
-            0xFFFFFF // Blanco por defecto
-        };
+        let color_value = color_utils::hex_to_argb_u32(&config.text.color);
 
         ui.set_text_color(slint::Brush::from(slint::Color::from_argb_encoded(
             color_value,
@@ -178,9 +168,7 @@ impl OverlayManager {
                 // Establecer las propiedades de tamaño y color antes de mostrar
                 window.set_win_width(overlay.config.width as f32);
                 window.set_win_height(overlay.config.height as f32);
-                window.set_text_color(slint::Brush::from(slint::Color::from_argb_encoded(
-                    0x00000000, // Negro con alpha 0 para transparencia
-                )));
+                // Removed incorrect text color override
 
                 window.set_font_size(overlay.config.text.font_size);
                 window.show()?;
@@ -213,24 +201,11 @@ impl OverlayManager {
 
         if let Some(overlay) = overlays.get_mut(overlay_id) {
             overlay.config.text.content = text.to_string();
-
-            let window_weak = overlay.window_weak.clone();
             let text_content = text.to_string();
-            // Ensure UI update happens on the event loop
-            slint::invoke_from_event_loop(move || {
-                println!(
-                    "DEBUG: invoke_from_event_loop executing for text: '{}'",
-                    text_content
-                );
-                if let Some(window) = window_weak.upgrade() {
-                    println!("DEBUG: Window upgraded successfully, setting text content");
-                    window.set_text_content(text_content.into());
-                } else {
-                    println!("DEBUG: Failed to upgrade window weak ref inside event loop");
-                }
+
+            self.execute_ui_action(&overlay.window_weak, move |window| {
+                window.set_text_content(text_content.into());
             })?;
-        } else {
-            println!("DEBUG: Overlay ID {} not found in manager", overlay_id);
         }
 
         Ok(())
@@ -306,31 +281,39 @@ impl OverlayManager {
         if let Some(overlay) = overlays.get_mut(overlay_id) {
             overlay.config = config.clone();
 
-            // Apply properties using window manager if window is available
-            if let Some(_window) = overlay.window_weak.upgrade() {
-                let window_weak = overlay.window_weak.clone();
-                let transparent = config.transparent;
-                let always_on_top = config.always_on_top;
-                let _ignore_input = config.ignore_input;
+            let transparent = config.transparent;
+            let always_on_top = config.always_on_top;
 
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(window) = window_weak.upgrade() {
-                        if let Ok(hwnd) = window_manager::get_native_handle(window.window()) {
-                            if transparent {
-                                // Apply transparent and click-through styles
-                                let _ =
-                                    window_manager::create_transparent_click_through_window(hwnd);
-                            }
-
-                            if always_on_top {
-                                let _ = window_manager::set_always_on_top(hwnd, true);
-                            }
-                        }
+            self.execute_ui_action(&overlay.window_weak, move |window| {
+                if let Ok(hwnd) = window_manager::get_native_handle(window.window()) {
+                    if transparent {
+                        let _ = window_manager::create_transparent_click_through_window(hwnd);
                     }
-                });
-            }
+                    if always_on_top {
+                        let _ = window_manager::set_always_on_top(hwnd, true);
+                    }
+                }
+            })?;
         }
 
+        Ok(())
+    }
+
+    /// Helper to execute actions on the UI thread
+    fn execute_ui_action<F>(
+        &self,
+        window_weak: &Weak<OverlayUI>,
+        action: F,
+    ) -> Result<(), Box<dyn std::error::Error>>
+    where
+        F: FnOnce(OverlayUI) + Send + 'static,
+    {
+        let window_weak = window_weak.clone();
+        slint::invoke_from_event_loop(move || {
+            if let Some(window) = window_weak.upgrade() {
+                action(window);
+            }
+        })?;
         Ok(())
     }
 }
@@ -408,7 +391,7 @@ mod tests {
 
     #[test]
     fn test_overlay_creation() {
-        let manager = OverlayManager::new();
+        let _manager = OverlayManager::new();
 
         let text_config = TextConfig {
             content: "Test".to_string(),
@@ -417,7 +400,7 @@ mod tests {
             position: (100, 100),
         };
 
-        let overlay_config = OverlayConfig {
+        let _overlay_config = OverlayConfig {
             text: text_config,
             width: 300,
             height: 100,
