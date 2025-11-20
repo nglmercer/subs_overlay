@@ -4,8 +4,11 @@
 use std::error::Error;
 use subs_overlay_lib::{create_text_overlay, remove_overlay, update_overlay_text};
 
+use log::{error, info};
+
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Creating a transparent overlay...");
+    env_logger::init();
+    info!("Creating a transparent overlay...");
 
     // Create a simple text overlay using the convenience function
     let overlay_id = create_text_overlay(
@@ -16,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         100, // height
     )?;
 
-    println!("Overlay created with ID: {}", overlay_id);
+    info!("Overlay created with ID: {}", overlay_id);
 
     // Clone the overlay_id for the thread
     let overlay_id_clone = overlay_id.clone();
@@ -29,11 +32,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             std::thread::sleep(std::time::Duration::from_secs(1));
 
             let text = format!("Counter: {}", counter);
-            println!("Updating text to: {}", text);
+            info!("Updating text to: {}", text);
 
             // Update the overlay text
             if let Err(e) = update_overlay_text(&overlay_id_clone, &text) {
-                eprintln!("Error updating text: {}", e);
+                error!("Error updating text: {}", e);
             }
 
             // Exit after 30 seconds for testing purposes
@@ -42,13 +45,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        println!("Counter finished. Removing overlay...");
+        info!("Counter finished. Removing overlay...");
 
         // Remove the overlay
         if let Err(e) = remove_overlay(&overlay_id_clone) {
-            eprintln!("Error removing overlay: {}", e);
+            error!("Error removing overlay: {}", e);
         }
-        println!("Overlay removed.");
+        info!("Overlay removed.");
 
         // Quit the event loop to exit the application
         if let Err(e) = slint::quit_event_loop() {
