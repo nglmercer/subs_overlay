@@ -2,21 +2,63 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::error::Error;
-
-slint::include_modules!();
+use subs_overlay_lib::{create_text_overlay, remove_overlay, update_overlay_text};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let ui = AppWindow::new()?;
+    println!("Creating a transparent overlay...");
 
-    ui.on_request_increase_value({
-        let ui_handle = ui.as_weak();
-        move || {
-            let ui = ui_handle.unwrap();
-            ui.set_counter(ui.get_counter() + 1);
+    // Create a simple text overlay using the convenience function
+    let overlay_id = create_text_overlay(
+        "Hello, World! This is a transparent overlay.",
+        200, // x position
+        200, // y position
+        500, // width
+        100, // height
+    )?;
+
+    println!("Overlay created with ID: {}", overlay_id);
+
+    // Clone the overlay_id for the thread
+    let overlay_id_clone = overlay_id.clone();
+
+    // Spawn a thread to handle user input and overlay updates
+    std::thread::spawn(move || {
+        let mut counter = 0;
+        loop {
+            counter += 1;
+            std::thread::sleep(std::time::Duration::from_secs(1));
+
+            let text = format!("Counter: {}", counter);
+            println!("Updating text to: {}", text);
+
+            // Update the overlay text
+            if let Err(e) = update_overlay_text(&overlay_id_clone, &text) {
+                eprintln!("Error updating text: {}", e);
+            }
+
+            // Exit after 30 seconds for testing purposes
+            if counter >= 30 {
+                break;
+            }
+        }
+
+        println!("Counter finished. Removing overlay...");
+
+        // Remove the overlay
+        if let Err(e) = remove_overlay(&overlay_id_clone) {
+            eprintln!("Error removing overlay: {}", e);
+        }
+        println!("Overlay removed.");
+
+        // Quit the event loop to exit the application
+        if let Err(e) = slint::quit_event_loop() {
+            eprintln!("Error quitting event loop: {}", e);
         }
     });
 
-    ui.run()?;
+    // Run the Slint event loop on the main thread
+    // This blocks until quit_event_loop() is called
+    slint::run_event_loop()?;
 
     Ok(())
 }

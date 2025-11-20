@@ -1,0 +1,40 @@
+import { VerticalBox } from "std-widgets.slint";
+
+export component OverlayUI inherits Window {
+    // Window properties - renombrados para evitar conflictos con propiedades de Window
+    in-out property <string> text-content: "";
+    in-out property <length> font-size: 24px;
+    in-out property <brush> text-color: #FFFFFF;
+    in-out property <length> win-width: 300px;
+    in-out property <length> win-height: 100px;
+
+    // Make the window transparent
+    // background: transparent; // Comentado para evitar duplicación
+
+    // Set window properties
+    title: "Overlay";
+    no-frame: true;
+    default-font-size: 16px;
+
+    // Position and size - establecemos valores por defecto
+    width: root.win-width;
+    height: root.win-height;
+
+    // Main container
+    Rectangle {
+        // Fondo semi-transparente para mejor visibilidad
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 5px;
+        border-width: 1px;
+        border-color: #FFFFFF30;
+
+        // Text display
+        Text {
+            text: root.text-content;
+            font-size: root.font-size;
+            color: root.text-color;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
