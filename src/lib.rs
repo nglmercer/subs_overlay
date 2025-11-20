@@ -101,7 +101,6 @@ impl OverlayManager {
         let mut overlays = self.overlays.lock().map_err(|_| OverlayError::LockError)?;
         overlays.insert(overlay_id.clone(), overlay_window);
 
-        self.apply_window_properties(&overlay_id, &config)?;
 
         Ok(overlay_id)
     }
@@ -114,7 +113,20 @@ impl OverlayManager {
                 window.set_win_width(overlay.config.width as f32);
                 window.set_win_height(overlay.config.height as f32);
                 window.set_font_size(overlay.config.text.font_size);
+
                 window.show()?;
+
+                // Set window position and apply properties
+                if let Ok(hwnd) = window_manager::get_native_handle(window.window()) {
+                    let _ = window_manager::apply_window_properties(
+                        hwnd,
+                        overlay.config.transparent,
+                        overlay.config.always_on_top,
+                        overlay.config.ignore_input,
+                    );
+                    let (x, y) = overlay.config.text.position;
+                    let _ = window_manager::set_window_position(hwnd, x, y);
+                }
             }
         }
 

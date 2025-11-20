@@ -31,7 +31,7 @@ pub fn apply_window_properties(
         // Set transparency
         if transparent {
             // Set alpha transparency
-            SetLayeredWindowAttributes(hwnd, COLORREF(0), 200, LWA_ALPHA)?;
+            SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)?;
         }
 
         // Make always on top
@@ -98,7 +98,7 @@ pub fn create_transparent_click_through_window(
         SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style);
 
         // Set window transparency
-        SetLayeredWindowAttributes(hwnd, COLORREF(0), 200, LWA_ALPHA)?;
+        SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA)?;
     }
 
     Ok(())
